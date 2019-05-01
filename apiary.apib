@@ -418,7 +418,7 @@ Pokud pokud je access token expirovaný
                 message:    "Expired access token"
             }
             
-## Propojení s klientskými aplikacemi [/api/clients/{client_identifier}]
+## Propojení s klientskými aplikacemi [/api/clients{?client_identifier}]
 Práce s propojenými klientskými aplikacemi uživatele
 
 + Parameters
@@ -527,12 +527,11 @@ Pokud pokud je access token expirovaný
                 message:    "Expired access token"
             }
 
-## Oprávnění uživatele [/api/scopes/{client_id}/{scope_id}]
+## Oprávnění uživatele [/api/scopes{?scope_id}]
 Práce s oprávněními (scopes) uživatele
 
 + Parameters
-    + client_id: f878s4x7a (string, optional) - identifikátor klientské aplikace
-    + scope_id: user.read (string, optional) - identifikátor oprávnění
+    + scope_id: application.com/user.read (string, optional) - identifikátor oprávnění
     
     
 ### Načíst seznam oprávnění [GET]
@@ -552,25 +551,14 @@ musí být platný scope user.read v aplikaci OCC2 Identity Server
             {
                 [
                     {
-                        id: "user.read",
-                        name:   "Přístup k datům uživatele",
+                        id: "application.com/user.read",
+                        name:   "Application.com - Přístup k datům uživatele",
                         description:    "Klient má přístup k datům uživatelského účtu přihlášeného vlastníka",
-                        clients: [
-                            {
-                                id: "dscsdccsdc",
-                                name:   "Some application"
-                            },
-                            {
-                                id: "8d46w4qw",
-                                name:   "Another application"
-                            }
-                        ]
                     },
                     {
-                        id: "user.write",
-                        name:   "Změna dat uživatele"
+                        id: "application.com/user.read",
+                        name:   "Application.com - Změna dat uživatele"
                         description:    "Klient může změnit data uživatelského účtu přihlášeného vlastníka",
-                        clients: []
                     }
                 ]
             }
