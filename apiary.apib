@@ -509,9 +509,83 @@ Pokud pokud je access token expirovaný
                 message:    "Expired access token"
             }
 
-## Oprávnění (scopes) uživatele [/api/clients/{client_identifier}/{scope_identifier}]
-Práce s oprávněními (scopes) uživatele v klientských aplikacích
+## Oprávnění uživatele [/api/scopes/{client_id}/{scope_id}]
+Práce s oprávněními (scopes) uživatele
 
 + Parameters
-    + client_identifier: sad5s4688e (string, optional) - identifikátor aplikace, pokud není zadán týká se operace všech aplikací
-    + scope_identifier: df468d46d (string, optional)
+    + client_id: f878s4x7a (string, optional) - identifikátor klientské aplikace
+    + scope_id: user.read (string, optional) - identifikátor oprávnění
+    
+    
+### Načíst seznam oprávnění [GET]
+
+musí být platný scope user.read
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer ACCESS_TOKEN
+            
++ Response 200 (application/json)
+
+   + Body
+   
+            {
+                [
+                    {
+                        id: "user.read",
+                        name:   "Přístup k datům uživatele",
+                        description:    "Klient má přístup k datům uživatelského účtu přihlášeného vlastníka",
+                        clients: [
+                            {
+                                id: "dscsdccsdc",
+                                name:   "Some application"
+                            },
+                            {
+                                id: "8d46w4qw",
+                                name:   "Another application"
+                            }
+                        ]
+                    },
+                    {
+                        id: "user.write",
+                        name:   "Změna dat uživatele"
+                        description:    "Klient může změnit data uživatelského účtu přihlášeného vlastníka",
+                        clients: []
+                    }
+                ]
+            }
+            
++ Response 404 (application/json)
+Pokud není oprávnění nebo aplikace nalezena nebo není propojená s uživatelem
+
+    + Body
+    
+            {
+                status: "error",
+                code: 404,
+                message:    "Invalid application/scope identifier"
+            }
+            
++ Response 403 (application/json)
+Pokud není platný access token
+
+    + Body
+    
+            {
+                status: "error",
+                code: 403,
+                message:    "Invalid access token"
+            }            
+            
++ Response 401 (application/json)
+Pokud pokud je access token expirovaný
+
+    + Body
+    
+            {
+                status: "error",
+                code: 401,
+                message:    "Expired access token"
+            }
