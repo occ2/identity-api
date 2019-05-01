@@ -267,11 +267,29 @@ Pokud se vyskytne chyba
 # Group Použití Access Tokenu
 Přístupový (access token) se do REST požadavků předává pomocí HTTP hlaviček. Příklad..
 
-## Přistup k nějakému zdroji [/api/nejakyZdroj]
+## Zrušení tokenu [/oauth/revoke{?token,token_type_hint}]
+Pokud se uživatel odhlásí, mělo by dojít k revokacím tokenu (access i refresh)
+
+### Revokace [POST]
 
 + Request
+
     + Headers
-        Authorization: Bearer ACCESS_TOKEN
+    
+            Authorization: Bearer ACCESS_TOKEN
+
++ Response 200
+
++ Response 400 (application/json)
+Pokud se vyskytne chyba
+    
+    + Body
+    
+            {
+                error: ERROR_CODE
+            }
+
+## Přistup k nějakému zdroji [/api/nejakyZdroj]
 
 ### Čtení ze zdroje [GET]
 
@@ -311,7 +329,7 @@ Pokud pokud je access token expirovaný
 Práce s účtem přihlášeného uživatele
 
 ### Načtení informace o uživateli [GET]
-musí být platný scope user.read
+musí být platný scope user.read v aplikaci OCC2 Identity Server
 
 + Request
 
@@ -352,7 +370,7 @@ Pokud pokud je access token expirovaný
             }
             
 ### Uložení informace o uživateli [PUT]            
-musí být platný scope user.write
+musí být platný scope user.write v aplikaci OCC2 Identity Server
 
 + Request
 
@@ -407,7 +425,7 @@ Práce s propojenými klientskými aplikacemi uživatele
     + client_identifier: sad5s4688e (string, optional) - identifikátor aplikace, pokud není zadán týká se operace všech aplikací
 
 ### Načíst seznam propojených aplikací [GET]
-musí být platný scope user.read
+musí být platný scope user.read v aplikaci OCC2 Identity Server
 
 + Request
 
@@ -466,7 +484,7 @@ Pokud pokud je access token expirovaný
             }            
 
 ### Odpojit aplikaci [DELETE]
-musí být platný scope user.write
+musí být platný scope user.write v aplikaci OCC2 Identity Server
 
 + Request
 
@@ -519,7 +537,7 @@ Práce s oprávněními (scopes) uživatele
     
 ### Načíst seznam oprávnění [GET]
 
-musí být platný scope user.read
+musí být platný scope user.read v aplikaci OCC2 Identity Server
 
 + Request
 
@@ -559,6 +577,50 @@ musí být platný scope user.read
             
 + Response 404 (application/json)
 Pokud není oprávnění nebo aplikace nalezena nebo není propojená s uživatelem
+
+    + Body
+    
+            {
+                status: "error",
+                code: 404,
+                message:    "Invalid application/scope identifier"
+            }
+            
++ Response 403 (application/json)
+Pokud není platný access token
+
+    + Body
+    
+            {
+                status: "error",
+                code: 403,
+                message:    "Invalid access token"
+            }            
+            
++ Response 401 (application/json)
+Pokud pokud je access token expirovaný
+
+    + Body
+    
+            {
+                status: "error",
+                code: 401,
+                message:    "Expired access token"
+            }
+            
+### Zrušit oprávnění [DELETE]
+musí být platný scope user.write v aplikaci OCC2 Identity Server
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer ACCESS_TOKEN
+            
++ Response 204
+            
++ Response 404 (application/json)
+Pokud není aplikace/scope nalezena nebo není propojená s uživatelem
 
     + Body
     
