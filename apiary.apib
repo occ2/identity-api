@@ -1,0 +1,517 @@
+FORMAT: 1A
+HOST: https://identity.occ2.cz/
+
+# Identity Server
+OAuth2 server pro autentizaci, autorizaci a spávu uživatelů
+
+HTTP komunikace
+- POST - všechny požadavky jsou application/x-www-form-urlencoded
+- GET - všechny požadavky jsou v URL
+
+Návratové HTTP kódy
+- 200 - OK
+- 201 - CREATED
+- 301 - REDIRECT
+- 400 - BAD REQUEST
+- 401 - UNAUTHORIZED
+- 403 - FORBIDDEN
+- 404 - NOT FOUND
+- 405 - METHOD NOT ALLOWED
+
+Chybové hlášky
+- invalid_request - Požadavku chybí požadovaný parametr, včetně nebo je neplatná hodnota parametru, parametr více než jednou obsahuje nebo je jinak neplatný.
+- unauthorized_client - Klient není oprávněn požadovat autorizaci pomocí této metody
+- access_denied - Vlastník zdroje (uživatel) nebo autorizační server tento odmítl žádost o přístup
+- unsupported_response_type - Autorizační server nepodporuje získání autorizačního kódu pomocí této metody
+- invalid_scope - Požadovaný rozsah oprávnění je neplatný, neznámý nebo poškozený.
+- server_error - Autorizační server zaznamenal neočekávanou chybu, která mu zabránila splnit požadavek. (Tento kód chyby je nutný,HTTP 500 kód nelze klientovi vrátit přes přesměrování HTTP.)
+- temporarily_unavailable - Autorizační server momentálně nemůže zpracovat z důvodu dočasného přetížení nebo údržby serveru. (Tento kód chyby je nutný, protože 503 HTTP kód nelze klientovi vrátit přes přesměrování HTTP.)
+
+# Group Oprávnění pomocí přístupového kódu
+Typ oprávnění pomocí přístupového kódu je nejčastěji používán, protože je optimalizován pro aplikace na straně serveru, kde není veřejně vystaven zdrojový kód a může být zachována důvěrnost klienta (heslo klienta).
+Jedná se o několik přesměrování mezi stránkami a endpointy, což znamená, že aplikace musí být schopna interakce s uživatelským agentem (tj. webovým prohlížečem uživatele) a přijímání přístupových kódů, které jsou směrovány přes prohlížeč uživatele.
+
+## Ověření uživatele [/oauth/authorize{?response_type,client_id,redirect_uri,scope}]
+    - Uživatel klikne na stránka klientské aplikace na odkaz "Přihlásit pomocí", což otevře přihlašovací stránku autentizačního serveru s HTML formulářem.
+
++ Parameters
+    + response_type: code (string) - specifikuje ty autentizace (zde pomocí autentizačního kódu)
+    + client_id: s6484c1q6x15 (string) - ID klientské aplikace zaregistrované na autentizačním serveru
+    + redirect_uri: https://localhost/abcde/ (string, optional) - adresa, kame služba přesměruje prohlížeč uživatele po úspěšném přihlášení a přijetí přístupového kódu
+    + scope: user.read (string) - specifikuje přístupové právo, které aplikace požaduje
+
+### Autentizace [GET]
+
+ - Uživatel se přihlásí a odsouhlasí oprávnění aplikace přistupovat k jeho údajům
+ - Po úspěšném přihlášení vygeneruje autentizační server přístupový kód s krátkou platností a přesměruje s ním zpět na endpoint aplikace (specifikovaný v redirect_uri) 
+
++ Response 301
+Pokud vše proběhne OK
+
+    + Headers
+    
+            Location: https://localhost/abcde/callback?code=soinasjn848d49a4x
+
++ Response 301
+Pokud se vyskytne chyba
+
+    + Headers
+    
+            Location: https://localhost/abcde/callback?error=ERROR_CODE
+
+
+## Access Token [/oauth/token{?client_id,client_secret,grant_type,code,redirect_uri}]
+
+ - Klientská aplikace vygeneruje požadavek na autentizační server, který pomocí přístupového kódu a hesla aplikace přistupový vrátí token
+
++ Parameters
+    + client_id: s6484c1q6x15 (string) - id klientské aplikace
+    + client_secret: as64d84q9xsc81q98 (string) - heslo klientské aplikace
+    + `grant_type`: `authorization_code` (string) - způsob ověření oprávnění (zde authorization_code)
+    + redirect_uri: https://localhost/abcde (string) - URL endpointu aplikace, kam má bý přesměrováno po přidělení přístupového tokenu
+    + code: kjh4f8eef (string) - přístupový kód přijatý při ověření uživatele
+
+### Vyžádání tokenu [POST]
+ - Nyní je aplikace autorizována! Může používat token pro přístup k účtu uživatele prostřednictvím API služby, omezeného na rozsah přístupu, dokud platnost tokenu nevyprší nebo není zrušena.
+
+ 
++ Response 201 (application/json)
+Pokud proběhne vše OK
+
+   + Body
+   
+            {
+                "access_token": "ACCESS_TOKEN",
+                "token_type": "bearer",
+                "expires_in": 2592000,
+                "refresh_token": "REFRESH_TOKEN",
+                "scope": "read",
+                "uid":100101,
+                "info": {   
+                            "name":"Milan Onderka",
+                            "email":"milan_onderka@occ2.cz"
+                        }
+            }
+            
++ Response 301
+Pokud se vyskytne chyba
+
+    + Headers
+    
+            Location: https://localhost/abcde/callback?error=ERROR_CODE 
+
+# Group Implicitní oprávnění
+Implicitní ověření se používá pro mobilní a webové aplikace (tj. aplikace, které běží ve webovém prohlížeči), kde není zaručena tajná důvěrnost klienta.
+Implicitní typ ověření je také založený na přesměrování, ale přístupový token je přidělen uživateli (jeho prohlížečí).
+Ten ho předá aplikaci, takže může být vystaven uživateli i dalším aplikacím na zařízení uživatele.
+Tento způsob NEOVĚŘUJE identitu aplikace a spoléhá se na přesměrování URI (které bylo zaregistrováno u služby).
+
+## Ověření uživatele [/oauth/authorize{?response_type,client_id,redirect_uri,scope}]
+- Uživatel klikne na stránka klientské aplikace na odkaz "Přihlásit pomocí", což otevře přihlašovací stránku autentizačního serveru s HTML formulářem.
+
++ Parameters
+    + response_type: token (string)
+    + client_id: 54rt48wdwq84r (string)
+    + redirect_uri: https://localhost/abcde (string, optional)
+    + scope: read (string)
+
+### Autentizace [GET]
+- Uživatel se přihlásí a odsouhlasí oprávnění aplikace přistupovat k jeho údajům
+- Po úspěšném přihlášení vygeneruje autentizační server autentizační token vrátí přesměruje s ním na endpoint aplikace, ale zachová token jako součást URI (specifikovaný v redirect_uri) 
+- Aplikace vrátí stránku, která obsahuje JS skript, který extrahuje z odesílají URL token.
+- Prohlížeč provede zadaný skript a předá extrahovaný přístupový token do aplikace.
+- Nyní je aplikace autorizována! Může používat token pro přístup k účtu uživatele prostřednictvím API služby, omezeného na rozsah přístupu, dokud platnost tokenu nevyprší nebo není zrušena.
+
++ Response 301
+
+    + Headers
+    
+            Redirect: https://localhost/abcde/callback#token=sd5486w4d8xw6q84s9q8w4w.xwdde.w
+
++ Response 400 (application/json)
+Pokud se vyskytne chyba
+    
+    + Body
+    
+            {
+                error: ERROR_CODE
+            }
+
+# Group Oprávnění pomocí přihlašovací údajů
+U typu přidělení hesla pro vlastníka hesla vlastníka poskytuje uživatel svá pověření služby (uživatelské jméno a heslo) přímo aplikaci, která používá pověření k získání přístupového tokenu ze služby.
+Tento typ grantu by měl být povolen pouze na autorizačním serveru, pokud jiné toky nejsou životaschopné. 
+Mělo by být také použito pouze v případě, že aplikace je důvěryhodná uživatelem (např. je vlastněna službou nebo operačním systémem uživatele).
+
+## Ověření uživatele [/oauth/token{?grant_type,username,password,client_id}]
+ - Uživatel vyplni jméno a heslo přímo v aplikaci
+ - Aplikace pošle požadavek na autentizační server s přihlašovacími údaji a vyžádá token
+
++ Parameters
+    + `grant_type`: password (string) - typ ověření
+    + username: milan_onderka@occ2.cz (string) - uživatelské jméno uživatele, který má být ověřen
+    + password: tajneHeslo123 (string) - heslo uživatele
+    + client_id: d4684d9x47wd (string) - id klientské aplikace
+    
+### Vyžádání tokenu [POST]
+ - Autentizační server ověří oprávnění
+ - Pokud je přihlášení v pořádku, odešle zpět přístupový token
+ - Nyní je aplikace autorizována! Může používat token pro přístup k účtu uživatele prostřednictvím API služby, omezeného na rozsah přístupu, dokud platnost tokenu nevyprší nebo není zrušena.
+    
++ Response 201 (application/json)
+Pokud proběhne vše OK
+   + Body
+   
+            {
+                "access_token": "ACCESS_TOKEN",
+                "token_type": "bearer",
+                "expires_in": 2592000,
+                "refresh_token": "REFRESH_TOKEN",
+                "scope": "read",
+                "uid":100101,
+                "info": {   
+                            "name":"Milan Onderka",
+                            "email":"milan_onderka@occ2.cz"
+                        }
+            }
+            
++ Response 400 (application/json)
+Pokud se vyskytne chyba
+    
+    + Body
+    
+            {
+                error: ERROR_CODE
+            }
+            
+# Group Oprávnění pomocí přístupových údajů aplikace
+Tento typ oprávnění poskytuje aplikaci přístup k vlastnímu účtu služby.
+Příklady, kdy by to mohlo být užitečné jsou např. pokud chce aplikace aktualizovat svůj registrovaný popis
+nebo přesměrování URI popř. přistupovat k jiným datům uloženým v účtu služby prostřednictvím rozhraní API. 
+(Typicky různé CRONy apod.)
+
+## Ověření aplikace [/oauth/token{?grant_type,client_id,client_secret}]
+ - aplikace pomocí svého ID a hesla zažádá o přistupový token
+ 
++ Parameters
+    + `grant_type`: client_credentials (string) - typ ověření
+    + client_id: sad48ewe5d45a (string) - ID klientské aplikace
+    + client_secret: q9we7w6cd48a8wd (string) - heslo klientské aplikace
+
+### Vyžádání tokenu [POST]
+ - autentizační server ověří id a heslo
+ - pokud je vše v pořádku vrací přístupový token
+ 
++ Response 201 (application/json)
+   + Body
+   
+            {
+                "access_token": "ACCESS_TOKEN",
+                "token_type": "bearer",
+                "expires_in": 2592000,
+                "refresh_token": "REFRESH_TOKEN",
+                "scope": "read",
+                "uid":100101,
+                "info": {   
+                            "name":"Milan Onderka",
+                            "email":"milan_onderka@occ2.cz"
+                        }
+            }
+
++ Response 400 (application/json)
+Pokud se vyskytne chyba
+    
+    + Body
+    
+            {
+                error: ERROR_CODE
+            }
+
+# Group Oprávnění pomocí refresh tokenu
+Tento způsob oprávnění se používá v případě, že dojde k expirace přístupového (access) tokenu a aplikace potřebuje vygenerovat nový.
+
+## Obnovení access tokenu [/oauth/token{?grant_type,client_id,client_secret,refresh_token}]
+
++ Parameters
+    + `grant_type`: refresh_token (string)
+    + client_id: ew9vc54qwed (string)
+    + client_secret: ertgbv46e84dq6x (string)
+    + refresh_token: qwdfgztj4ds8w6e (string)
+
+### Vyžádání tokenu [POST]
+
++ Response 201 (application/json)
+   + Body
+   
+            {
+                "access_token": "ACCESS_TOKEN",
+                "token_type": "bearer",
+                "expires_in": 2592000,
+                "refresh_token": "REFRESH_TOKEN",
+                "scope": "read",
+                "uid":100101,
+                "info": {   
+                            "name":"Milan Onderka",
+                            "email":"milan_onderka@occ2.cz"
+                        }
+            }
+            
++ Response 400 (application/json)
+Pokud se vyskytne chyba
+    
+    + Body
+    
+            {
+                error: ERROR_CODE
+            }            
+
+# Group Použití Access Tokenu
+Přístupový (access token) se do REST požadavků předává pomocí HTTP hlaviček. Příklad..
+
+## Přistup k nějakému zdroji [/api/nejakyZdroj]
+
++ Request
+    + Headers
+        Authorization: Bearer ACCESS_TOKEN
+
+### Čtení ze zdroje [GET]
+
++ Response 201 (application/json)
+
+   + Body
+   
+            {
+                data: nejaka_data
+            }
+            
++ Response 403 (application/json)
+Pokud není platný access token
+
+    + Body
+    
+            {
+                status: "error",
+                code: 403,
+                message:    "Invalid access token"
+            }            
+            
++ Response 401 (application/json)
+Pokud pokud je access token expirovaný
+
+    + Body
+    
+            {
+                status: "error",
+                code: 401,
+                message:    "Expired access token"
+            }  
+            
+# Group Práce s uživatelem
+
+## Informace u uživateli [/api/user]
+Práce s účtem přihlášeného uživatele
+
+### Načtení informace o uživateli [GET]
+musí být platný scope user.read
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer ACCESS_TOKEN
+
++ Response 200 (application/json)
+
+   + Body
+   
+            {
+                name:   "Milan Onderka"
+                email:  "milan_onderka@occ2.cz"
+                ...
+            }
+            
++ Response 403 (application/json)
+Pokud není platný access token
+
+    + Body
+    
+            {
+                status: "error",
+                code: 403,
+                message:    "Invalid access token"
+            }            
+            
++ Response 401 (application/json)
+Pokud pokud je access token expirovaný
+
+    + Body
+    
+            {
+                status: "error",
+                code: 401,
+                message:    "Expired access token"
+            }
+            
+### Uložení informace o uživateli [PUT]            
+musí být platný scope user.write
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer ACCESS_TOKEN
+
+    + Body
+    
+            {
+                name:   "Milan Onderka"
+                email:  "milan_onderka@occ2.cz"
+                ...
+            }
+
++ Response 200 (application/json)
+
+   + Body
+   
+            {
+                name:   "Milan Onderka"
+                email:  "milan_onderka@occ2.cz"
+                ...
+            }
+            
++ Response 403 (application/json)
+Pokud není platný access token
+
+    + Body
+    
+            {
+                status: "error",
+                code: 403,
+                message:    "Invalid access token"
+            }            
+            
++ Response 401 (application/json)
+Pokud pokud je access token expirovaný
+
+    + Body
+    
+            {
+                status: "error",
+                code: 401,
+                message:    "Expired access token"
+            }
+            
+## Propojení s klientskými aplikacemi [/api/clients/{client_identifier}]
+Práce s propojenými klientskými aplikacemi uživatele
+
++ Parameters
+    + client_identifier: sad5s4688e (string, optional) - identifikátor aplikace, pokud není zadán týká se operace všech aplikací
+
+### Načíst seznam propojených aplikací [GET]
+musí být platný scope user.read
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer ACCESS_TOKEN
+            
++ Response 200 (application/json)
+
+   + Body
+   
+            {
+                [
+                    {
+                        identifier: "asadas54d6as5",
+                        name: "Sample application"
+                    },
+                    {
+                        identifier: "d9494ds5axas45",
+                        name:   "Another application"
+                    }
+                ]
+            }
+            
++ Response 404 (application/json)
+Pokud není aplikace nalezena nebo není propojená s uživatelem
+
+    + Body
+    
+            {
+                status: "error",
+                code: 404,
+                message:    "Invalid application identifier"
+            }
+            
++ Response 403 (application/json)
+Pokud není platný access token
+
+    + Body
+    
+            {
+                status: "error",
+                code: 403,
+                message:    "Invalid access token"
+            }            
+            
++ Response 401 (application/json)
+Pokud pokud je access token expirovaný
+
+    + Body
+    
+            {
+                status: "error",
+                code: 401,
+                message:    "Expired access token"
+            }            
+
+### Odpojit aplikaci [DELETE]
+musí být platný scope user.write
+
++ Request
+
+    + Headers
+    
+            Authorization: Bearer ACCESS_TOKEN
+            
++ Response 204
+            
++ Response 404 (application/json)
+Pokud není aplikace nalezena nebo není propojená s uživatelem
+
+    + Body
+    
+            {
+                status: "error",
+                code: 404,
+                message:    "Invalid application identifier"
+            }
+            
++ Response 403 (application/json)
+Pokud není platný access token
+
+    + Body
+    
+            {
+                status: "error",
+                code: 403,
+                message:    "Invalid access token"
+            }            
+            
++ Response 401 (application/json)
+Pokud pokud je access token expirovaný
+
+    + Body
+    
+            {
+                status: "error",
+                code: 401,
+                message:    "Expired access token"
+            }
+
+## Oprávnění (scopes) uživatele [/api/clients/{client_identifier}/{scope_identifier}]
+Práce s oprávněními (scopes) uživatele v klientských aplikacích
+
++ Parameters
+    + client_identifier: sad5s4688e (string, optional) - identifikátor aplikace, pokud není zadán týká se operace všech aplikací
+    + scope_identifier: df468d46d (string, optional)
