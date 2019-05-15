@@ -27,6 +27,66 @@ Chybové hlášky
 - server_error - Autorizační server zaznamenal neočekávanou chybu, která mu zabránila splnit požadavek. (Tento kód chyby je nutný,HTTP 500 kód nelze klientovi vrátit přes přesměrování HTTP.)
 - temporarily_unavailable - Autorizační server momentálně nemůže zpracovat z důvodu dočasného přetížení nebo údržby serveru. (Tento kód chyby je nutný, protože 503 HTTP kód nelze klientovi vrátit přes přesměrování HTTP.)
 
+# Group  Konfigurace serveru
+Na těchto endpointech server pošle svoji aktuální konfiguraci, veřejné klíče apod.
+
+## Aktuální nastavení, adres a podporované metody [/.well-known/openid-configuration]
+
+### Zobrazení nastavení [GET]
+Pošle aktuální nastavení serveru
+
++ Response 201 (application/json)
+Pokud proběhne vše OK
+
+   + Body
+   
+            {
+                  "issuer": "https://identity.occ2.cz/",
+                  "authorization_endpoint": "https://identity.occ2.cz/oauth/authorize",
+                  "token_endpoint": "https://identity.occ2.cz/oauth/access_token",
+                  "userinfo_endpoint": "https://identity.occ2.cz/api/user",
+                  "jwks_uri": "https://identity.occ2.cz/.well-known/jwks.json",
+                  "scopes_supported": [
+                    "identityServer-user-read",
+                    "identityServer-user-write"
+                  ],
+                  "response_types_supported": [
+                    "code",
+                    "token"
+                  ],
+                  "grant_types_supported": [
+                    "authorization_code",
+                    "implicit",
+                    "password",
+                    "client_credentials",
+                    "refresh_token"
+                  ],
+                  "subject_types_supported": [
+                    "public"
+                  ],
+                  "id_token_signing_alg_values_supported": [
+                    "RS256"
+                  ]
+            }
+
+## Veřejný RSA klíč [/.well-known/jwks.json]
+Práce s JWKS veřejným klíčem
+
+### Zobrazení JWKS klíče [GET]
+Pošle JWKS veřejný RSA klíč serveru
+
++ Response 201 (application/json)
+Pokud proběhne vše OK
+
+   + Body
+   
+            {
+                "kty":"RSA",
+                "n":"1XYgpFIowXNrN5a1hvkHpbtn9AuxrLE4GsA1jdI2JOCI8jHhchddeOpneHHvvIv4KCON7jJp3t2HuLDnSM8s8KawLJhEty_c-2XqunZqzrEQ5Vkdez_fjenOqUwHGg62aA3g6qKqaNy7ufqqNfSMhW_6dwKQQITPeyjfLXYLgJ3FkPLHiIUHTj9jUPRCEqKS2KeeI87Obj0xRZ-1ApyEqJSuisojwt1Ksw3PZv6MGNtQKyrY_y5sHD_YvWjhxU_1qCN37sXZKGn_Io-6A2TfIrCTO1GTl2tY78WcILcslxbUY4wzH2cHTDffBPF9PEIvt_h-syY7XjsJW5ngd8h-Qw",
+                "e":"AQAB",
+                "use":"sig"
+            }
+
 # Group Oprávnění pomocí přístupového kódu
 Typ oprávnění pomocí přístupového kódu je nejčastěji používán, protože je optimalizován pro aplikace na straně serveru, kde není veřejně vystaven zdrojový kód a může být zachována důvěrnost klienta (heslo klienta).
 Jedná se o několik přesměrování mezi stránkami a endpointy, což znamená, že aplikace musí být schopna interakce s uživatelským agentem (tj. webovým prohlížečem uživatele) a přijímání přístupových kódů, které jsou směrovány přes prohlížeč uživatele.
